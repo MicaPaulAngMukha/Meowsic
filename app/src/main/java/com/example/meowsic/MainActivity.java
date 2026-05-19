@@ -37,7 +37,7 @@ import com.google.android.material.tabs.TabLayoutMediator;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements MusicService.MusicServiceListener {
 
     private ActivityMainBinding binding;
     private MusicService musicService;
@@ -181,10 +181,8 @@ public class MainActivity extends AppCompatActivity {
             if (musicBound) {
                 if (musicService.isPng()) {
                     musicService.pausePlayer();
-                    binding.miniPlayer.btnMiniPlayPause.setImageResource(android.R.drawable.ic_media_play);
                 } else {
                     musicService.go();
-                    binding.miniPlayer.btnMiniPlayPause.setImageResource(android.R.drawable.ic_media_pause);
                 }
             }
         });
@@ -196,7 +194,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void observeViewModel() {
         viewModel.getCurrentSongIndex().observe(this, index -> {
-            if (index != null && viewModel.getSongs().getValue() != null && index < viewModel.getSongs().getValue().size()) {
+            if (index != null && viewModel.getSongs().getValue() != null && index >= 0 && index < viewModel.getSongs().getValue().size()) {
                 Song currentSong = viewModel.getSongs().getValue().get(index);
                 binding.miniPlayer.tvMiniSongName.setText(currentSong.getTitle());
                 binding.miniPlayer.tvMiniArtist.setText(currentSong.getArtist());
@@ -210,6 +208,14 @@ public class MainActivity extends AppCompatActivity {
                 binding.miniPlayer.getRoot().setVisibility(View.VISIBLE);
             }
         });
+
+        viewModel.isPlaying().observe(this, isPlaying -> {
+            if (isPlaying) {
+                binding.miniPlayer.btnMiniPlayPause.setImageResource(android.R.drawable.ic_media_pause);
+            } else {
+                binding.miniPlayer.btnMiniPlayPause.setImageResource(android.R.drawable.ic_media_play);
+            }
+        });
     }
 
     private ServiceConnection musicConnection = new ServiceConnection() {
@@ -217,10 +223,17 @@ public class MainActivity extends AppCompatActivity {
         public void onServiceConnected(ComponentName name, IBinder service) {
             MusicService.MusicBinder binder = (MusicService.MusicBinder) service;
             musicService = binder.getService();
+            musicService.setListener(MainActivity.this);
             if (viewModel.getSongs().getValue() != null) {
                 musicService.setList(viewModel.getSongs().getValue());
             }
             musicBound = true;
+            
+            // Sync UI if already playing
+            if (musicService.isPng() || musicService.getCurrentSong() != null) {
+                viewModel.setCurrentSongIndex(musicService.getSongPos());
+                viewModel.setPlaying(musicService.isPng());
+            }
         }
 
         @Override
@@ -243,14 +256,30 @@ public class MainActivity extends AppCompatActivity {
         if (musicBound) {
             musicService.setSong(index);
             musicService.playSong();
-            viewModel.setCurrentSongIndex(index);
-            binding.miniPlayer.btnMiniPlayPause.setImageResource(android.R.drawable.ic_media_pause);
         }
     }
 
     @Override
+    public void onSongChanged(int songIndex, Song song) {
+        viewModel.setCurrentSongIndex(songIndex);
+    }
+
+    @Override
+    public void onPlayerStateChanged(boolean isPlaying) {
+        viewModel.setPlaying(isPlaying);
+    }
+
+    @Override
+    public void onPrepared() {
+        viewModel.setPlaying(true);
+    }
+
+    @Override
     protected void onDestroy() {
-        if (musicBound) unbindService(musicConnection);
+        if (musicBound) {
+            musicService.setListener(null);
+            unbindService(musicConnection);
+        }
         if (playIntent != null) stopService(playIntent);
         musicService = null;
         super.onDestroy();

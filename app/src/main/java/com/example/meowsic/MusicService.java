@@ -2,6 +2,7 @@ package com.example.meowsic;
 
 import android.app.Service;
 import android.content.Intent;
+import android.media.AudioAttributes;
 import android.media.MediaPlayer;
 import android.media.PlaybackParams;
 import android.os.Binder;
@@ -13,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class MusicService extends Service implements MediaPlayer.OnPreparedListener, MediaPlayer.OnErrorListener, MediaPlayer.OnCompletionListener {
 
@@ -30,6 +32,33 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
     public static final int REPEAT_ALL = 2;
     private int repeatMode = REPEAT_NONE;
 
+    private final CopyOnWriteArrayList<MusicServiceListener> listeners = new CopyOnWriteArrayList<>();
+
+    public interface MusicServiceListener {
+        void onSongChanged(int songIndex, Song song);
+        void onPlayerStateChanged(boolean isPlaying);
+        void onPrepared();
+    }
+
+    public void addListener(MusicServiceListener listener) {
+        if (listener != null && !listeners.contains(listener)) {
+            listeners.add(listener);
+        }
+    }
+
+    public void removeListener(MusicServiceListener listener) {
+        listeners.remove(listener);
+    }
+
+    // For compatibility with MainActivity.java
+    public void setListener(MusicServiceListener listener) {
+        if (listener == null) {
+            listeners.clear();
+        } else {
+            addListener(listener);
+        }
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -41,6 +70,15 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
 
     public void initMusicPlayer() {
         player.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            AudioAttributes attr = new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .build();
+            player.setAudioAttributes(attr);
+        }
+
         player.setOnPreparedListener(this);
         player.setOnCompletionListener(this);
         player.setOnErrorListener(this);
@@ -63,21 +101,29 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
 
     @Override
     public boolean onUnbind(Intent intent) {
-        player.stop();
-        player.release();
-        return false;
+        // Return true to allow rebind
+        return true;
     }
 
     public void playSong() {
+        if (player == null) return;
         player.reset();
         if (songs == null || songs.isEmpty()) return;
+        if (songPos < 0) songPos = 0;
+        if (songPos >= songs.size()) songPos = songs.size() - 1;
+        
         Song playSong = songs.get(songPos);
         try {
             player.setDataSource(playSong.getPath());
+            player.prepareAsync();
+            
+            for (MusicServiceListener listener : listeners) {
+                listener.onSongChanged(songPos, playSong);
+                listener.onPlayerStateChanged(false);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        player.prepareAsync();
     }
 
     public void setSong(int songIndex) {
@@ -98,6 +144,9 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
     @Override
     public boolean onError(MediaPlayer mp, int what, int extra) {
         mp.reset();
+        for (MusicServiceListener listener : listeners) {
+            listener.onPlayerStateChanged(false);
+        }
         return false;
     }
 
@@ -105,47 +154,76 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
     public void onPrepared(MediaPlayer mp) {
         applyPlaybackSpeed();
         mp.start();
+        for (MusicServiceListener listener : listeners) {
+            listener.onPlayerStateChanged(true);
+            listener.onPrepared();
+        }
     }
 
     public int getPosn() {
-        return player.getCurrentPosition();
+        if (player != null) {
+            try {
+                return player.getCurrentPosition();
+            } catch (Exception e) {
+                return 0;
+            }
+        }
+        return 0;
     }
 
     public int getDur() {
-        try {
-            return player.getDuration();
-        } catch (Exception e) {
-            return 0;
+        if (player != null) {
+            try {
+                return player.getDuration();
+            } catch (Exception e) {
+                return 0;
+            }
         }
+        return 0;
     }
 
     public boolean isPng() {
-        try {
-            return player.isPlaying();
-        } catch (Exception e) {
-            return false;
+        if (player != null) {
+            try {
+                return player.isPlaying();
+            } catch (Exception e) {
+                return false;
+            }
         }
+        return false;
     }
 
     public void pausePlayer() {
-        player.pause();
+        if (player != null) {
+            player.pause();
+            for (MusicServiceListener listener : listeners) {
+                listener.onPlayerStateChanged(false);
+            }
+        }
     }
 
     public void seek(int posn) {
-        player.seekTo(posn);
+        if (player != null) player.seekTo(posn);
     }
 
     public void go() {
-        player.start();
+        if (player != null) {
+            player.start();
+            for (MusicServiceListener listener : listeners) {
+                listener.onPlayerStateChanged(true);
+            }
+        }
     }
 
     public void playPrev() {
+        if (songs == null || songs.isEmpty()) return;
         songPos--;
         if (songPos < 0) songPos = songs.size() - 1;
         playSong();
     }
 
     public void playNext() {
+        if (songs == null || songs.isEmpty()) return;
         if (shuffle) {
             int newSong = songPos;
             while (newSong == songPos && songs.size() > 1) {
@@ -159,7 +237,8 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
                     songPos = 0;
                 } else {
                     songPos = songs.size() - 1;
-                    return; // Stop at the end if not repeating all
+                    // Optionally notify that we reached the end
+                    return; 
                 }
             }
         }
@@ -176,6 +255,10 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
             return songs.get(songPos);
         }
         return null;
+    }
+
+    public int getSongPos() {
+        return songPos;
     }
 
     public void toggleShuffle() {
@@ -197,7 +280,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
     private void applyPlaybackSpeed() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             try {
-                if (player != null && (isPng() || player.getDuration() > 0)) {
+                if (player != null) {
                     PlaybackParams params = player.getPlaybackParams();
                     params.setSpeed(playbackSpeed);
                     player.setPlaybackParams(params);
@@ -206,5 +289,16 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
                 e.printStackTrace();
             }
         }
+    }
+
+    @Override
+    public void onDestroy() {
+        if (player != null) {
+            player.stop();
+            player.release();
+            player = null;
+        }
+        listeners.clear();
+        super.onDestroy();
     }
 }
