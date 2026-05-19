@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Theme.Meowsic" parent="Theme.MaterialComponents.DayNight.NoActionBar.Bridge">
+        <!-- Primary brand color. -->
+        <item name="colorPrimary">@color/primary_orange</item>
+        <item name="colorPrimaryVariant">#D35400</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <!-- Secondary brand color. -->
+        <item name="colorSecondary">@color/text_brown</item>
+        <item name="colorSecondaryVariant">@color/text_light</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <!-- Status bar color. -->
+        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+
+        <!-- AppCompat attributes for components that still expect them -->
+        <item name="colorPrimaryDark">#D35400</item>
+        <item name="colorAccent">@color/primary_orange</item>
+    </style>
+</resources>

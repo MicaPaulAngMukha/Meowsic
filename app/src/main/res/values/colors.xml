@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Default Template Colors -->
+    <color name="purple_80">#D0BCFF</color>
+    <color name="purple_grey_80">#CCC2DC</color>
+    <color name="pink_80">#EFB8C8</color>
+    <color name="purple_40">#6650a4</color>
+    <color name="purple_grey_40">#625b71</color>
+    <color name="pink_40">#7D5260</color>
+
+    <!-- Meowsic Brand Colors -->
+    <color name="primary_orange">#E67E22</color>
+    <color name="bg_cream">#FFF3E0</color>
+    <color name="text_bold">#D32F2F</color>
+    <color name="text_brown">#8D6E63</color>
+    <color name="text_light">#A1887F</color>
+    <color name="subtext_peach">#FFCCBC</color>
+
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>
