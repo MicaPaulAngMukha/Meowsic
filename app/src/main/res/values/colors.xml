@@ -9,8 +9,9 @@
     <color name="pink_40">#7D5260</color>
 
     <!-- Meowsic Brand Colors -->
-    <color name="primary_orange">#E67E22</color>
-    <color name="bg_cream">#FFF3E0</color>
+    <color name="primary_orange">#C4824E</color>
+    <color name="primary_orange_dark">#A66A3E</color>
+    <color name="bg_cream">#FCF9F3</color>
     <color name="text_bold">#D32F2F</color>
     <color name="text_brown">#8D6E63</color>
     <color name="text_light">#A1887F</color>

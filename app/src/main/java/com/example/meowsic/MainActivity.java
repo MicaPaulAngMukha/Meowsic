@@ -54,7 +54,6 @@ public class MainActivity extends AppCompatActivity implements MusicService.Musi
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        // Apply system bar insets to avoid clashing with status bar and navigation bar
         ViewCompat.setOnApplyWindowInsetsListener(binding.mainLayout, (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
@@ -188,24 +187,34 @@ public class MainActivity extends AppCompatActivity implements MusicService.Musi
         });
 
         binding.miniPlayer.btnMiniNext.setOnClickListener(v -> {
-            if (musicBound) musicService.playNext();
+            if (musicBound) {
+                syncServiceList();
+                musicService.playNext();
+            }
         });
     }
 
     private void observeViewModel() {
-        viewModel.getCurrentSongIndex().observe(this, index -> {
-            if (index != null && viewModel.getSongs().getValue() != null && index >= 0 && index < viewModel.getSongs().getValue().size()) {
-                Song currentSong = viewModel.getSongs().getValue().get(index);
-                binding.miniPlayer.tvMiniSongName.setText(currentSong.getTitle());
-                binding.miniPlayer.tvMiniArtist.setText(currentSong.getArtist());
+        viewModel.getSongs().observe(this, songs -> {
+            if (musicBound && musicService != null && songs != null) {
+                musicService.setList(songs);
+            }
+        });
+
+        viewModel.getCurrentSong().observe(this, song -> {
+            if (song != null) {
+                binding.miniPlayer.tvMiniSongName.setText(song.getTitle());
+                binding.miniPlayer.tvMiniArtist.setText(song.getArtist());
                 
                 Glide.with(this)
-                    .load(currentSong.getAlbumArtUri())
+                    .load(song.getAlbumArtUri())
                     .placeholder(R.drawable.meowsic_default_song_album_cover)
                     .error(R.drawable.meowsic_default_song_album_cover)
                     .into(binding.miniPlayer.ivMiniAlbumArt);
 
                 binding.miniPlayer.getRoot().setVisibility(View.VISIBLE);
+            } else {
+                binding.miniPlayer.getRoot().setVisibility(View.GONE);
             }
         });
 
@@ -223,15 +232,13 @@ public class MainActivity extends AppCompatActivity implements MusicService.Musi
         public void onServiceConnected(ComponentName name, IBinder service) {
             MusicService.MusicBinder binder = (MusicService.MusicBinder) service;
             musicService = binder.getService();
-            musicService.setListener(MainActivity.this);
-            if (viewModel.getSongs().getValue() != null) {
-                musicService.setList(viewModel.getSongs().getValue());
-            }
+            musicService.addListener(MainActivity.this);
+            
+            syncServiceList();
             musicBound = true;
             
-            // Sync UI if already playing
-            if (musicService.isPng() || musicService.getCurrentSong() != null) {
-                viewModel.setCurrentSongIndex(musicService.getSongPos());
+            if (musicService.getCurrentSong() != null) {
+                viewModel.setCurrentSong(musicService.getCurrentSong());
                 viewModel.setPlaying(musicService.isPng());
             }
         }
@@ -241,6 +248,15 @@ public class MainActivity extends AppCompatActivity implements MusicService.Musi
             musicBound = false;
         }
     };
+
+    private void syncServiceList() {
+        if (musicService != null) {
+            List<Song> currentSongs = viewModel.getSongs().getValue();
+            if (currentSongs != null) {
+                musicService.setList(currentSongs);
+            }
+        }
+    }
 
     @Override
     protected void onStart() {
@@ -254,6 +270,7 @@ public class MainActivity extends AppCompatActivity implements MusicService.Musi
 
     public void playSong(int index) {
         if (musicBound) {
+            syncServiceList();
             musicService.setSong(index);
             musicService.playSong();
         }
@@ -261,26 +278,25 @@ public class MainActivity extends AppCompatActivity implements MusicService.Musi
 
     @Override
     public void onSongChanged(int songIndex, Song song) {
-        viewModel.setCurrentSongIndex(songIndex);
+        runOnUiThread(() -> viewModel.setCurrentSong(song));
     }
 
     @Override
     public void onPlayerStateChanged(boolean isPlaying) {
-        viewModel.setPlaying(isPlaying);
+        runOnUiThread(() -> viewModel.setPlaying(isPlaying));
     }
 
     @Override
     public void onPrepared() {
-        viewModel.setPlaying(true);
+        runOnUiThread(() -> viewModel.setPlaying(true));
     }
 
     @Override
     protected void onDestroy() {
         if (musicBound) {
-            musicService.setListener(null);
+            musicService.removeListener(this);
             unbindService(musicConnection);
         }
-        if (playIntent != null) stopService(playIntent);
         musicService = null;
         super.onDestroy();
     }

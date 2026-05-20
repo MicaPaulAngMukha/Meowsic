@@ -20,7 +20,7 @@ import com.example.meowsic.model.Song;
 
 import java.util.Locale;
 
-public class NowPlayingActivity extends AppCompatActivity {
+public class NowPlayingActivity extends AppCompatActivity implements MusicService.MusicServiceListener {
 
     private ActivityNowPlayingBinding binding;
     private MusicService musicService;
@@ -43,10 +43,8 @@ public class NowPlayingActivity extends AppCompatActivity {
             if (musicBound) {
                 if (musicService.isPng()) {
                     musicService.pausePlayer();
-                    binding.btnPlayPause.setImageResource(android.R.drawable.ic_media_play);
                 } else {
                     musicService.go();
-                    binding.btnPlayPause.setImageResource(android.R.drawable.ic_media_pause);
                 }
             }
         });
@@ -54,14 +52,12 @@ public class NowPlayingActivity extends AppCompatActivity {
         binding.btnNext.setOnClickListener(v -> {
             if (musicBound) {
                 musicService.playNext();
-                updateUI();
             }
         });
 
         binding.btnPrev.setOnClickListener(v -> {
             if (musicBound) {
                 musicService.playPrev();
-                updateUI();
             }
         });
 
@@ -90,9 +86,13 @@ public class NowPlayingActivity extends AppCompatActivity {
                 }
             }
             @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {}
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                handler.removeCallbacks(updateSeekBarRunnable);
+            }
             @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {}
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                updateSeekBar();
+            }
         });
     }
 
@@ -116,7 +116,6 @@ public class NowPlayingActivity extends AppCompatActivity {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setItems(options, (dialog, which) -> {
             Toast.makeText(this, "Selected: " + options[which], Toast.LENGTH_SHORT).show();
-            // Implement specific logic for each option
         });
         builder.show();
     }
@@ -151,7 +150,7 @@ public class NowPlayingActivity extends AppCompatActivity {
     }
 
     private void updateShuffleIcon() {
-        if (musicService.isShuffle()) {
+        if (musicBound && musicService.isShuffle()) {
             binding.btnShuffle.setImageResource(R.drawable.icons8_shuffle_30_on);
         } else {
             binding.btnShuffle.setImageResource(R.drawable.icons8_shuffle_30);
@@ -159,6 +158,7 @@ public class NowPlayingActivity extends AppCompatActivity {
     }
 
     private void updateRepeatIcon() {
+        if (!musicBound) return;
         switch (musicService.getRepeatMode()) {
             case MusicService.REPEAT_NONE:
                 binding.btnRepeat.setImageResource(R.drawable.icons8_repeat_48_off);
@@ -173,9 +173,11 @@ public class NowPlayingActivity extends AppCompatActivity {
     }
 
     private void updateSeekBar() {
-        if (musicBound && musicService.isPng()) {
+        if (musicBound) {
             binding.seekBar.setProgress(musicService.getPosn());
-            handler.postDelayed(updateSeekBarRunnable, 1000);
+            if (musicService.isPng()) {
+                handler.postDelayed(updateSeekBarRunnable, 1000);
+            }
         }
     }
 
@@ -186,6 +188,7 @@ public class NowPlayingActivity extends AppCompatActivity {
         public void onServiceConnected(ComponentName name, IBinder service) {
             MusicService.MusicBinder binder = (MusicService.MusicBinder) service;
             musicService = binder.getService();
+            musicService.addListener(NowPlayingActivity.this);
             musicBound = true;
             updateUI();
         }
@@ -207,10 +210,37 @@ public class NowPlayingActivity extends AppCompatActivity {
     protected void onStop() {
         super.onStop();
         if (musicBound) {
+            musicService.removeListener(this);
             unbindService(musicConnection);
             musicBound = false;
         }
         handler.removeCallbacks(updateSeekBarRunnable);
+    }
+
+    @Override
+    public void onSongChanged(int songIndex, Song song) {
+        runOnUiThread(this::updateUI);
+    }
+
+    @Override
+    public void onPlayerStateChanged(boolean isPlaying) {
+        runOnUiThread(() -> {
+            if (isPlaying) {
+                binding.btnPlayPause.setImageResource(android.R.drawable.ic_media_pause);
+                updateSeekBar();
+            } else {
+                binding.btnPlayPause.setImageResource(android.R.drawable.ic_media_play);
+                handler.removeCallbacks(updateSeekBarRunnable);
+            }
+        });
+    }
+
+    @Override
+    public void onPrepared() {
+        runOnUiThread(() -> {
+            binding.seekBar.setMax(musicService.getDur());
+            updateSeekBar();
+        });
     }
 
     @Override

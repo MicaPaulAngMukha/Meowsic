@@ -45,6 +45,7 @@ dependencies {
     implementation(libs.room.runtime)
     annotationProcessor(libs.room.compiler)
     implementation(libs.glide)
+    implementation(libs.androidx.media)
     
     // Compose dependencies to make the template files compile
     implementation(platform(libs.androidx.compose.bom))

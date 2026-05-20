@@ -4,13 +4,13 @@
     android:id="@+id/mainLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FFF3E0">
+    android:background="@color/bg_cream">
 
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/appBarLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#FFF3E0"
+        android:background="@color/bg_cream"
         app:elevation="0dp">
 
         <LinearLayout
@@ -18,7 +18,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:paddingTop="16dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -33,10 +35,10 @@
                     android:layout_weight="1"
                     android:background="@drawable/search_background"
                     android:hint="Search..."
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
                     android:textSize="14sp"
-                    android:textColor="#8D6E63"
+                    android:textColor="@color/text_brown"
                     android:visibility="gone" />
 
                 <View
@@ -48,30 +50,32 @@
 
                 <ImageButton
                     android:id="@+id/btnSearch"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:src="@drawable/icons8_search_24"
-                    app:tint="#E67E22" />
+                    app:tint="@color/primary_orange" />
 
                 <ImageButton
                     android:id="@+id/btnSettings"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:src="@drawable/icons8_cat_32"
-                    app:tint="#E67E22" />
+                    app:tint="@color/primary_orange" />
             </LinearLayout>
 
             <com.google.android.material.tabs.TabLayout
                 android:id="@+id/tabLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="#FFF3E0"
-                app:tabIndicatorColor="#E67E22"
-                app:tabSelectedTextColor="#E67E22"
-                app:tabTextColor="#8D6E63"
+                android:background="@color/bg_cream"
+                app:tabIndicatorColor="@color/primary_orange"
+                app:tabSelectedTextColor="@color/primary_orange"
+                app:tabTextColor="@color/text_brown"
                 app:tabMode="fixed"
+                app:tabIndicatorHeight="2dp"
+                app:tabRippleColor="@android:color/transparent"
                 app:tabGravity="fill" />
         </LinearLayout>
     </com.google.android.material.appbar.AppBarLayout>

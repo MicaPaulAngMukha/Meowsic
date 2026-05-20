@@ -4,7 +4,7 @@
     <style name="Theme.Meowsic" parent="Theme.MaterialComponents.DayNight.NoActionBar.Bridge">
         <!-- Primary brand color. -->
         <item name="colorPrimary">@color/primary_orange</item>
-        <item name="colorPrimaryVariant">#D35400</item>
+        <item name="colorPrimaryVariant">#A66A3E</item>
         <item name="colorOnPrimary">@color/white</item>
         <!-- Secondary brand color. -->
         <item name="colorSecondary">@color/text_brown</item>
@@ -14,7 +14,7 @@
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
 
         <!-- AppCompat attributes for components that still expect them -->
-        <item name="colorPrimaryDark">#D35400</item>
+        <item name="colorPrimaryDark">#A66A3E</item>
         <item name="colorAccent">@color/primary_orange</item>
     </style>
 </resources>

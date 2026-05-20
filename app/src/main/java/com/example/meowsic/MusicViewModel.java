@@ -14,7 +14,7 @@ public class MusicViewModel extends ViewModel {
     private final MutableLiveData<String> searchQuery = new MutableLiveData<>("");
     private final MediatorLiveData<List<Song>> filteredSongs = new MediatorLiveData<>();
     
-    private final MutableLiveData<Integer> currentSongIndex = new MutableLiveData<>();
+    private final MutableLiveData<Song> currentSong = new MutableLiveData<>();
     private final MutableLiveData<Boolean> isPlaying = new MutableLiveData<>(false);
 
     public MusicViewModel() {
@@ -55,16 +55,16 @@ public class MusicViewModel extends ViewModel {
         searchQuery.setValue(query);
     }
 
-    public void setCurrentSongIndex(int index) {
-        currentSongIndex.setValue(index);
+    public void setCurrentSong(Song song) {
+        currentSong.postValue(song);
     }
 
-    public LiveData<Integer> getCurrentSongIndex() {
-        return currentSongIndex;
+    public LiveData<Song> getCurrentSong() {
+        return currentSong;
     }
 
     public void setPlaying(boolean playing) {
-        isPlaying.setValue(playing);
+        isPlaying.postValue(playing);
     }
 
     public LiveData<Boolean> isPlaying() {
